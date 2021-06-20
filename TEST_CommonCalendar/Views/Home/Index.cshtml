@@ -1,0 +1,536 @@
+﻿@model TEST_CommonCalendar.Models.mEVENT
+
+@{
+    ViewData["Title"] = "Common Calendar";
+}
+@Html.AntiForgeryToken()
+
+<div class="row">
+    <div class="col md-4">
+        <h4><img src="~/images/calendar_event.png" width="50" height="50" />Common Calendar</h4>
+    </div>
+</div>
+<hr />
+<div class="row alert alert-success" id="divSuccessMessage">
+    <span id="spnSuccessText">MyMesg</span>
+</div>
+<div class="row alert alert-danger" id="divFailMessage">
+    <span id="spnFailText">MyMesg</span>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-7">
+
+        </div>
+        <div class="col-5 text-center">
+            <a href="#" class="btn btn-success" onclick="showEventForm()">+ Neien Event</a>
+        </div>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-7">
+            <div id='calendar'></div>
+        </div>
+        <div class="col-5 text-center">
+            <div class="row" id="divData">
+                <div class="col"><a href="#" class="btn btn-secondary" onclick="setDisplaydate(-1)"><</a></div>
+                <div class="col"><h4 id="divDisplayDate">Journalier</h4></div>
+                <div class="col"><a href="#" class="btn btn-secondary" onclick="setDisplaydate(1)">></a></div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col" id="divDailyEvents">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="mdlNewEvent">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nei Activiteit erstellen</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edxEventId" />
+                <div class="row" id="divErrorRow">
+                    <label id="lblError" class="control-label" style="color:red"></label>
+                </div>
+                <div class="row">
+                    <div class="form-group col-sm">
+                        <label class="control-label">@Html.DisplayNameFor(model => model.s_Title)</label>
+                        <input type="text" id="edxTitle" class="form-control" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-sm">
+                        <label class="control-label">@Html.DisplayNameFor(model => model.d_DateTimeFrom)</label>
+                        <input id="d_DateFrom" type="hidden" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        <input id="edxDateFrom" class="form-control" value="@DateTime.Now.ToString("dd/MM/yyyy")" onchange="setDate('from');" />
+                    </div>
+                    <div class="form-group col-sm">
+                        <label class="control-label">@Html.DisplayNameFor(model => model.d_HourFrom)</label>
+                        @Html.DropDownListFor(x => x.l_HourFrom,
+                                            new SelectList(Model.l_HourFrom, "string_id", "list_Value"),
+                                            new
+                                            {
+                                                @class = "form-control selectpicker",
+                                                onchange = "sethour('from');",
+                                                data_show_subtext = "true",
+                                                data_live_search = "true"
+                                            })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-sm">
+                        <label class="control-label">@Html.DisplayNameFor(model => model.d_DateTimeTo)</label>
+                        <input id="d_DateTo" type="hidden" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        <input id="edxDateTo" class="form-control" value="@DateTime.Now.ToString("dd/MM/yyyy")" onchange="setDate('to');" />
+                    </div>
+                    <div class="form-group col-sm">
+                        <label class="control-label">@Html.DisplayNameFor(model => model.d_HourTo)</label>
+                        @Html.DropDownListFor(x => x.l_HourTo,
+                                            new SelectList(Model.l_HourTo, "string_id", "list_Value"),
+                                            new
+                                            {
+                                                @class = "form-control selectpicker",
+                                                onchange = "sethour('to');",
+                                                data_show_subtext = "true",
+                                                data_live_search = "true"
+                                            })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-sm">
+                        <label class="control-label">@Html.DisplayNameFor(model => model.s_Location)</label>
+                        <input type="text" id="edxLocation" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="row">
+                    <div class="form-group col-sm">
+                        <button id="change-email-button" type="submit" class="btn btn-success" onclick="saveEvent();">Späicheren</button>
+                    </div>
+                    <div class="form-group col-sm">
+                        <button id="change-email-button" type="submit" class="btn btn-outline-danger" data-dismiss="modal">Zoumaachen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <link href='~/lib/fullcalendar/lib/main.css' rel='stylesheet' />
+    <script src='~/lib/fullcalendar/lib/main.js'></script>
+
+    <script src="~/lib/datepicker/js/bootstrap-datepicker.min.js"></script>
+    <link rel="stylesheet" href="~/lib/datepicker/css/bootstrap-datepicker3.css">
+    <link rel="stylesheet" href="~/lib/datepicker/css/bootstrap-datepicker.css">
+
+    <link rel="stylesheet" href="~/lib/select/bootstrap-select.min.css">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="~/lib/select/bootstrap-select.min.js"></script>
+
+    <script>
+        var calendar;
+        var token = $("[name='__RequestVerificationToken']").val();
+
+        $(document).ready(function () {
+            var mydate = new Date();
+            //set date into tags
+            setdateToTag(mydate);
+            $('#divSuccessMessage').hide();
+            $('#divFailMessage').hide();
+            $('#divErrorRow').hide();
+
+            //get data
+            getDailyEvents(mydate);
+
+            //init the hour
+            $('#l_HourFrom').selectpicker({
+                liveSearch: true,
+                showSubtext: true,
+            });
+
+            $('#l_HourFrom').selectpicker('val', "10:00");
+            $("#d_DateFrom").val(formatdate(new Date()) + "T10:00:00");
+
+            $('#l_HourTo').selectpicker({
+                liveSearch: true,
+                showSubtext: true
+            });
+
+            $('#l_HourTo').selectpicker('val', "11:00");
+            $("#d_DateTo").val(formatdate(new Date()) + "T11:00:00");
+
+            $("#edxDateFrom").datepicker({
+                format: "dd/mm/yyyy",
+                todayBtn: "linked",
+                autoclose: true,
+                orientation: "bottom auto",
+                weekStart: 1
+            });
+
+            $("#edxDateTo").datepicker({
+                format: "dd/mm/yyyy",
+                todayBtn: "linked",
+                autoclose: true,
+                orientation: "bottom auto",
+                weekStart: 1
+            });
+        });
+
+        function sethour(source) {
+            if (source == "from") {
+                var edxdate = $("#d_DateFrom").val();
+                $("#d_DateFrom").val(edxdate.substr(0, 10) + "T" + $("#l_HourFrom").val() + ":00");
+            }
+            else {
+                var edxdate = $("#d_DateTo").val();
+                $("#d_DateTo").val(edxdate.substr(0, 10) + "T" + $("#l_HourTo").val() + ":00");
+            }
+        }
+
+        function setDate(source) {
+            if (source == "from") {
+                var edxdate = $("#edxDateFrom").val();
+                var temptime = $("#d_DateFrom").val();
+                var setdate = edxdate.substr(6, 4) + "-" + edxdate.substr(3, 2) + "-" + edxdate.substr(0, 2) + "T" + temptime.substr(11, 8);
+
+                $("#d_DateFrom").val(setdate);
+            }
+            else {
+                var edxdate = $("#edxDateTo").val();
+                var temptime = $("#d_DateTo").val();
+                var setdate = edxdate.substr(6, 4) + "-" + edxdate.substr(3, 2) + "-" + edxdate.substr(0, 2) + "T" + temptime.substr(11, 8);
+
+                $("#d_DateTo").val(setdate);
+            }
+        }
+
+        //add to tag
+        function setdateToTag(in_date) {
+            $("#divDisplayDate").html(padFix(in_date.getDate()) + '/' + padFix((in_date.getMonth() + 1)) + '/' + in_date.getFullYear());
+            $('#divDisplayDate').attr('displaydate', formatdate(in_date));
+        }
+
+        function formatdate(in_date) {
+            return in_date.getFullYear() + "-" + padFix(in_date.getMonth() + 1) + "-" + padFix(in_date.getDate());
+        }
+
+        //left function
+        function padFix(n) {
+            return ('0000' + n).match(/\d{2}$/);
+        }
+
+        function setDisplaydate(num_days_add) {
+            //set the display date and the dag
+            var conv_date = new Date($("#divDisplayDate").attr("displaydate") + 'T00:00:00Z');
+            //inc/dec date
+            conv_date.setDate(conv_date.getDate() + num_days_add)
+
+            //set date into tags
+            setdateToTag(conv_date);
+
+            //get data
+            getDailyEvents();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('calendar');
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                titleFormat: { // will produce something like "Tuesday, September 18, 2018"
+                    month: 'long',
+                    year: 'numeric',
+                    day: 'numeric'
+                },
+                headerToolbar: {
+                    left: 'prevYear,prev,next,nextYear today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek,dayGridDay'
+                },
+                initialDate: new Date(),
+                firstDay: 1,
+                navLinks: true, // can click day/week names to navigate views
+                editable: true,
+                dayMaxEvents: true, // allow "more" link when too many events
+                events: function (info, successCallback, failureCallback) {
+                    $.ajax({
+                        contentType: 'application/x-www-form-urlencoded',
+                        type: "POST",
+                        url: "/mEVENTs/GetAllEvents",
+                        data: {
+                            __RequestVerificationToken: token,
+                            s_Startdate: info.start.valueOf(),
+                            s_Enddate: info.end.valueOf()
+                        },
+                        success: function (data) {
+                            if (data.result == "success") {
+                                var events = [];
+                                data.l_Events.forEach(function (entry) {
+                                    events.push({
+                                        id: entry.k_EVENT_ID,
+                                        title: entry.s_Title,
+                                        start: entry.s_DisplayDateTimeFrom,
+                                        end: entry.s_DisplayDateTimeTo
+                                    });
+                                });
+                                successCallback(events);
+                            }
+                        },
+                        error: function (xhr, textStatus, errorThrown) {
+                            alert("Feeler beim Duerchfeieren fun der Aktion.");
+                            console.log('Error in Operation' + xhr + " " + textStatus + " " + errorThrown);
+                        }
+                    });
+                },
+                eventClick: function (info) {
+                    EditEvent(info.event.id);
+                },
+                eventTimeFormat: { // like '14:30:00'
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                },
+                formatdate: {
+                    timeZoneName: 'local',
+                    locale: 'fr'
+                }
+            });
+
+            calendar.render();
+        });
+
+        function saveEvent() {
+            if (validateform()) {
+                $.ajax({
+                    contentType: 'application/x-www-form-urlencoded',
+                    type: "POST",
+                    url: "/mEVENTs/saveEvent",
+                    data: {
+                        __RequestVerificationToken: token,
+                        d_StartDate: $("#d_DateFrom").val(),
+                        d_EndDate: $("#d_DateTo").val(),
+                        s_Title: $("#edxTitle").val(),
+                        s_Location: $("#edxLocation").val(),
+                        s_EventId: $("#edxEventId").val()
+                    },
+                    success: function (data) {
+                        if (data.result == "success") {
+                            $('#spnSuccessText').html("Event ass gespäichert!");
+                            $('#divSuccessMessage').show();
+                            setTimeout(function () { $("#divSuccessMessage").fadeOut(1000); }, 2500);
+
+                            getDailyEvents();
+
+                            calendar.refetchEvents();
+                        }
+                        else {
+                            $('#spnFailText').html("Feeler beim Späicheren - saveEvent!");
+                            $('#divFailMessage').show();
+                            setTimeout(function () { $("#divFailMessage").fadeOut(1000); }, 2500);
+                        }
+
+                        $("#mdlNewEvent").modal("hide");
+                    },
+                    error: function (xhr, textStatus, errorThrown) {
+                        alert("Feeler beim Duerchfeieren fun der Aktion.");
+                        console.log('Error in Operation' + xhr + " " + textStatus + " " + errorThrown);
+                    }
+                });
+            }
+        }
+
+        function validateform() {
+            $("#divErrorRow").hide();
+            $("#lblError").html("");
+
+            if ($("#edxTitle").val() === "") {
+                $("#divErrorRow").show();
+                $("#lblError").html("Den Title kann net eidel sin.");
+
+                return false;
+            }
+
+            if ($("#d_DateFrom").val() > $("#d_DateTo").val()) {
+                $("#divErrorRow").show();
+                $("#lblError").html("Den Ufank muss firum Schluss sin.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        function getDailyEvents() {
+            $.ajax({
+                contentType: 'application/x-www-form-urlencoded',
+                type: "POST",
+                url: "/mEVENTs/getDailyEvents",
+                data: {
+                    __RequestVerificationToken: token,
+                    d_InDate: $("#divDisplayDate").attr("displaydate")
+                },
+                success: function (data) {
+                    if (data.result == "success") {
+                        //clear content
+                        $("#divDailyEvents").empty();
+
+                        var result = "";
+                        data.l_DisplayEvents.forEach(function (entry) {
+
+                            result = result + "<div class=\"row\">";
+                            result = result + "<div class=\"col text-left\">" + entry.s_DailyCalHour + "</div>";
+                            result = result + "<div class=\"col text-left\">" + entry.s_Title + "</div>";
+                            result = result + "<div class=\"col\">";
+                            result = result + "<button type=\"button\" class=\"btn btn-warning\" onclick=\"EditEvent('" + entry.k_EVENT_ID + "');\">";
+                            result = result + "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"currentColor\" class=\"bi bi-pencil-square\" viewBox=\"0 0 16 16\">";
+                            result = result + "<path d=\"M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z\"/>";
+                            result = result + "<path fill-rule=\"evenodd\" d =\"M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z\"/>";
+                            result = result + "</svg> ";
+                            result = result + "</button>";
+                            result = result + "</div>";
+                            result = result + "</div>";
+
+
+                            result = result + "<div class=\"row\">";
+                            if (entry.s_Location != "") {
+                                result = result + "<div class=\"col text-left\">Wou: " + entry.s_Location + "</div>";
+                            }
+                            else {
+                                result = result + "<div class=\"col text-left\"></div>";
+                            }
+                            result = result + "<div class=\"col text-left\"></div>";
+                            result = result + "<div class=\"col\">";
+                            result = result + "<button type=\"button\" class=\"btn btn-danger\" onclick=\"deleteEvent('" + entry.k_EVENT_ID + "');\">";
+                            result = result + "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"currentColor\" class=\"bi bi-trash\" viewBox=\"0 0 16 16\">";
+                            result = result + "<path d=\"M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z\"></path>";
+                            result = result + "<path fill-rule=\"evenodd\" d=\"M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z\"></path>";
+                            result = result + "</svg>";
+                            result = result + "</button>";
+                            result = result + "</div>";
+
+                            result = result + "</div><br />";
+                        });
+
+                        $("#divDailyEvents").append(result);
+                    }
+                    else {
+                        $('#spnFailText').html("Feeler beim Lueden - getDailyEvents!");
+                        $('#divFailMessage').show();
+                        setTimeout(function () { $("#divFailMessage").fadeOut(1000); }, 2500);
+                    }
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    alert("Feeler beim Duerchfeieren fun der Aktion.");
+                    console.log('Error in Operation' + xhr + " " + textStatus + " " + errorThrown);
+                }
+            });
+        }
+
+        function showEventForm() {
+            $("#edxTitle").val("");
+            $("#edxLocation").val("");
+            $("#edxEventId").val("");
+
+            $('#l_HourFrom').selectpicker('val', "10:00");
+            $("#d_DateFrom").val($("#divDisplayDate").attr("displaydate") + "T10:00:00");
+
+            $('#l_HourTo').selectpicker('val', "11:00");
+            $("#d_DateTo").val($("#divDisplayDate").attr("displaydate") + "T11:00:00");
+
+            var tempdate = $("#divDisplayDate").attr("displaydate").substr(8, 2) + "/" + $("#divDisplayDate").attr("displaydate").substr(5, 2) + "/" + $("#divDisplayDate").attr("displaydate").substr(0, 4);
+
+            $("#edxDateFrom").val(tempdate);
+            $("#edxDateTo").val(tempdate);
+
+            $("#mdlNewEvent").modal();
+        }
+
+        function deleteEvent(EventId) {
+            $.ajax({
+                contentType: 'application/x-www-form-urlencoded',
+                type: "POST",
+                url: "/mEVENTs/DeleteEvent",
+                data: {
+                    __RequestVerificationToken: token,
+                    gEventId: EventId
+                },
+                success: function (data) {
+                    if (data.result == "success") {
+
+                        $('#spnSuccessText').html("Event ass geläscht gin!");
+                        $('#divSuccessMessage').show();
+                        setTimeout(function () { $("#divSuccessMessage").fadeOut(1000); }, 2500);
+
+                        //refresh view
+                        getDailyEvents();
+
+                        calendar.refetchEvents();
+                    }
+                    else {
+                        $('#spnFailText').html("Feeler beim Läschen - deleteEvent!");
+                        $('#divFailMessage').show();
+                        setTimeout(function () { $("#divFailMessage").fadeOut(1000); }, 2500);
+                    }
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    alert("Feeler beim Duerchfeieren fun der Aktion.");
+                    console.log('Error in Operation' + xhr + " " + textStatus + " " + errorThrown);
+                }
+            });
+        }
+
+        function EditEvent(EventId) {
+            $.ajax({
+                contentType: 'application/x-www-form-urlencoded',
+                type: "POST",
+                url: "/mEVENTs/EditEvent",
+                data: {
+                    __RequestVerificationToken: token,
+                    gEventId: EventId
+                },
+                success: function (data) {
+                    if (data.result == "success") {
+                        $("#edxTitle").val(data.stitle);
+                        $("#edxLocation").val(data.sLocation);
+                        $("#edxEventId").val(data.sEventid);
+
+                        $('#l_HourFrom').selectpicker('val', data.s_HourFrom);
+                        $("#d_DateFrom").val(data.s_DateFrom + "T" + data.s_HourFrom + ":00");
+
+                        $('#l_HourTo').selectpicker('val', data.s_HourTo);
+                        $("#d_DateTo").val(data.s_DateTo + "T" + data.s_HourTo + ":00");
+
+                        $("#edxDateFrom").val(data.s_DateFrom.substr(8, 2) + "/" + data.s_DateFrom.substr(5, 2) + "/" + data.s_DateFrom.substr(0, 4));
+                        $("#edxDateTo").val(data.s_DateTo.substr(8, 2) + "/" + data.s_DateTo.substr(5, 2) + "/" + data.s_DateTo.substr(0, 4));
+
+                        $("#mdlNewEvent").modal();
+                    }
+                    else {
+                        $('#spnFailText').html("Feeler beim Lueden - EditEvent!");
+                        $('#divFailMessage').show();
+                        setTimeout(function () { $("#divFailMessage").fadeOut(1000); }, 2500);
+                    }
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    alert("Feeler beim Duerchfeieren fun der Aktion.");
+                    console.log('Error in Operation' + xhr + " " + textStatus + " " + errorThrown);
+                }
+            });
+        }
+
+    </script>
+}

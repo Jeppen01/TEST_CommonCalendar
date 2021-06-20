@@ -1,0 +1,42 @@
+﻿@model TEST_CommonCalendar.Models.mErrorHandling
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>mErrorHandling</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.s_ClassName)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.s_ClassName)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.s_FunctionName)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.s_FunctionName)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.s_ExceptionText)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.s_ExceptionText)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.d_OccurTime)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.d_OccurTime)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.k_ErrorID">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
