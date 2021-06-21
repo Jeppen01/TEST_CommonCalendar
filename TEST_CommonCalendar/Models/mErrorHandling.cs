@@ -20,7 +20,7 @@ namespace TEST_CommonCalendar.Models
         [Display(Name = "Exception Text")]
         public string s_ExceptionText { get; set; }
 
-        [Display(Name = "Date Time")]
+        [Display(Name = "Occur Date Time")]
         [DisplayFormat(DataFormatString = "{0:dd/MM/yyyy HH:mm:ss}", ApplyFormatInEditMode = true)]
         public DateTime d_OccurTime { get; set; }
     }
