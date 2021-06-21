@@ -45,7 +45,7 @@ steps:
   inputs:
     command: custom
     custom: ef
-    arguments: 'migrations script -i -p webapiStartupProjName -o $(Build.ArtifactStagingDirectory)/Migrations/migration.sql'
+    arguments: 'migrations script -i -p TEST_CommonCalendar -o $(Build.ArtifactStagingDirectory)/Migrations/migration.sql'
 
 - task: PublishBuildArtifacts@1
   inputs:
