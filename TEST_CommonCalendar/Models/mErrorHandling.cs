@@ -17,7 +17,7 @@ namespace TEST_CommonCalendar.Models
         [Display(Name = "Function Name")]
         public string s_FunctionName { get; set; }
 
-        [Display(Name = "Exception")]
+        [Display(Name = "Exception Text")]
         public string s_ExceptionText { get; set; }
 
         [Display(Name = "Date Time")]
