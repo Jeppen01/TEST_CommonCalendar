@@ -32,3 +32,22 @@ steps:
   inputs:
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Initialize EntityFrameworkCore'
+  inputs:
+    command: custom
+    custom: tool
+    arguments: 'install --global dotnet-ef'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Create migration'
+  inputs:
+    command: custom
+    custom: ef
+    arguments: 'migrations script -i -p TEST_CommonCalendar -o $(Build.ArtifactStagingDirectory)/Migrations/migration.sql'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: drop
