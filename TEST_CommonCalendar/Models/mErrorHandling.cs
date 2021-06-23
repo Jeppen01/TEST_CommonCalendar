@@ -23,5 +23,9 @@ namespace TEST_CommonCalendar.Models
         [Display(Name = "Occur Date Time")]
         [DisplayFormat(DataFormatString = "{0:dd/MM/yyyy HH:mm:ss}", ApplyFormatInEditMode = true)]
         public DateTime d_OccurTime { get; set; }
+
+        [Display(Name = "Resolution Date Time")]
+        [DisplayFormat(DataFormatString = "{0:dd/MM/yyyy HH:mm:ss}", ApplyFormatInEditMode = true)]
+        public DateTime d_ResolutionDateTime { get; set; }
     }
 }
